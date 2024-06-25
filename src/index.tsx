@@ -1,14 +1,14 @@
 import { registerGlobals as webrtcRegisterGlobals } from '@livekit/react-native-webrtc';
 import { setupURLPolyfill } from 'react-native-url-polyfill';
-import 'fastestsmallesttextencoderdecoder';
+import './polyfills/EncoderDecoderTogether.min.js';
 import AudioSession, {
   AndroidAudioTypePresets,
-  AndroidAudioTypeOptions,
-  AppleAudioCategory,
-  AppleAudioCategoryOption,
-  AppleAudioConfiguration,
-  AppleAudioMode,
-  AudioTrackState,
+  type AndroidAudioTypeOptions,
+  type AppleAudioCategory,
+  type AppleAudioCategoryOption,
+  type AppleAudioConfiguration,
+  type AppleAudioMode,
+  type AudioTrackState,
   getDefaultAppleAudioConfigurationForMode,
 } from './audio/AudioSession';
 import type { AudioConfiguration } from './audio/AudioSession';
@@ -74,24 +74,28 @@ function shimIterator() {
   var shim = require('well-known-symbols/Symbol.iterator/shim');
   shim();
 }
-
-export * from './components/VideoView';
-export * from './useParticipant';
-export * from './useRoom';
+export * from './hooks';
+export * from './components/LiveKitRoom';
+export * from './components/VideoTrack';
+export * from './components/VideoView'; // deprecated
+export * from './useParticipant'; // deprecated
+export * from './useRoom'; // deprecated
 export * from './logger';
 export * from './audio/AudioManager';
 
 export {
   AudioSession,
+  AndroidAudioTypePresets,
+  getDefaultAppleAudioConfigurationForMode,
+};
+export type {
   AudioConfiguration,
   AndroidAudioTypeOptions,
-  AndroidAudioTypePresets,
   AppleAudioCategory,
   AppleAudioCategoryOption,
   AppleAudioConfiguration,
   AppleAudioMode,
   AudioTrackState,
-  getDefaultAppleAudioConfigurationForMode,
   LogLevel,
   SetLogLevelOptions,
 };

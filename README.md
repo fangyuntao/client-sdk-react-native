@@ -103,11 +103,11 @@ In your [AppDelegate.m](https://github.com/livekit/client-sdk-react-native/blob/
 
 ### Expo
 
-LiveKit is available on Expo through development builds. [See the instructions found here](https://github.com/livekit/client-sdk-react-native/wiki/Expo-Development-Build-Instructions).
+LiveKit is available on Expo through development builds. You can find our Expo plugin and setup instructions [here](https://github.com/livekit/client-sdk-react-native-expo-plugin).
 
 ## Example app
 
-We've included an [example app](example/) that you can try out.
+You can try our standalone example app [here](https://github.com/livekit-examples/react-native-meet/).
 
 ## Usage
 
@@ -122,44 +122,102 @@ import { registerGlobals } from '@livekit/react-native';
 registerGlobals();
 ```
 
-A Room object can then be created and connected to.
+In your app, wrap your component in a `LiveKitRoom` component, which manages a
+Room object and allows you to use our hooks to create your own real-time video/audio app.
 
 ```js
-import { Participant, Room, Track } from 'livekit-client';
-import { useRoom, AudioSession, VideoView } from '@livekit/react-native';
+import * as React from 'react';
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  ListRenderItem,
+} from 'react-native';
+import { useEffect } from 'react';
+import {
+  AudioSession,
+  LiveKitRoom,
+  useTracks,
+  TrackReferenceOrPlaceholder,
+  VideoTrack,
+  isTrackReference,
+  registerGlobals,
+} from '@livekit/react-native';
+import { Track } from 'livekit-client';
 
-/*...*/
+const wsURL = "wss://example.com"
+const token = "your-token-here"
 
-// Create a room state
-const [room] = useState(() => new Room());
+export default function App() {
+  // Start the audio session first.
+  useEffect(() => {
+    let start = async () => {
+      await AudioSession.startAudioSession();
+    };
 
-// Get the participants from the room
-const { participants } = useRoom(room);
+    start();
+    return () => {
+      AudioSession.stopAudioSession();
+    };
+  }, []);
 
-useEffect(() => {
-  let connect = async () => {
-    await AudioSession.startAudioSession();
-    await room.connect(url, token, {});
-    console.log('connected to ', url, ' ', token);
+  return (
+    <LiveKitRoom
+      serverUrl={wsURL}
+      token={token}
+      connect={true}
+      options={{
+        // Use screen pixel density to handle screens with differing densities.
+        adaptiveStream: { pixelDensity: 'screen' },
+      }}
+      audio={true}
+      video={true}
+    >
+      <RoomView />
+    </LiveKitRoom>
+  );
+};
+
+const RoomView = () => {
+  // Get all camera tracks.
+  // The useTracks hook grabs the tracks from LiveKitRoom component
+  // providing the context for the Room object.
+  const tracks = useTracks([Track.Source.Camera]);
+
+  const renderTrack: ListRenderItem<TrackReferenceOrPlaceholder> = ({item}) => {
+    // Render using the VideoTrack component.
+    if(isTrackReference(item)) {
+      return (<VideoTrack trackRef={item} style={styles.participantView} />)
+    } else {
+      return (<View style={styles.participantView} />)
+    }
   };
-  connect();
-  return () => {
-    room.disconnect();
-    AudioSession.stopAudioSession();
-  };
-}, [url, token, room]);
 
-const videoView = participants.length > 0 && (
-  <VideoView
-    style={{ flex: 1, width: '100%' }}
-    videoTrack={participants[0].getTrack(Track.Source.Camera)?.videoTrack}
-  />
-);
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={tracks}
+        renderItem={renderTrack}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'stretch',
+    justifyContent: 'center',
+  },
+  participantView: {
+    height: 300,
+  },
+});
 ```
 
 [API documentation is located here.](https://htmlpreview.github.io/?https://raw.githubusercontent.com/livekit/client-sdk-react-native/main/docs/modules.html)
 
-Additional documentation for the LiveKit SDK can be found at https://docs.livekit.io/references/client-sdks/
+Additional documentation for the LiveKit SDK can be found at https://docs.livekit.io/
 
 ## Audio sessions
 
@@ -237,11 +295,20 @@ Enabling screenshare requires extra installation steps:
 
 Android screenshare requires a foreground service with type `mediaProjection` to be present.
 
-The example app uses [@voximplant/react-native-foreground-service](https://github.com/voximplant/react-native-foreground-service) for this.
-Ensure that the service is labelled a `mediaProjection` service like so:
+The example app uses [@supersami/rn-foreground-service](https://github.com/Raja0sama/rn-foreground-service) for this.
+
+Add the following permissions to your `AndroidManifest.xml` file:
 
 ```xml
-<service android:name="com.voximplant.foregroundservice.VIForegroundService" android:foregroundServiceType="mediaProjection" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+```
+
+Declare the the service and ensure it's labelled a `mediaProjection` service like so:
+
+```xml
+<service android:name="com.supersami.foregroundservice.ForegroundService" android:foregroundServiceType="mediaProjection" />
+<service android:name="com.supersami.foregroundservice.ForegroundServiceTask" />
 ```
 
 Once setup, start the foreground service prior to using screenshare.
@@ -312,8 +379,8 @@ Apache License 2.0
 <br/><table>
 <thead><tr><th colspan="2">LiveKit Ecosystem</th></tr></thead>
 <tbody>
-<tr><td>Real-time SDKs</td><td><a href="https://github.com/livekit/components-js">React Components</a> · <a href="https://github.com/livekit/client-sdk-js">JavaScript</a> · <a href="https://github.com/livekit/client-sdk-swift">iOS/macOS</a> · <a href="https://github.com/livekit/client-sdk-android">Android</a> · <a href="https://github.com/livekit/client-sdk-flutter">Flutter</a> · <b>React Native</b> · <a href="https://github.com/livekit/client-sdk-rust">Rust</a> · <a href="https://github.com/livekit/client-sdk-python">Python</a> · <a href="https://github.com/livekit/client-sdk-unity-web">Unity (web)</a> · <a href="https://github.com/livekit/client-sdk-unity">Unity (beta)</a></td></tr><tr></tr>
-<tr><td>Server APIs</td><td><a href="https://github.com/livekit/server-sdk-js">Node.js</a> · <a href="https://github.com/livekit/server-sdk-go">Golang</a> · <a href="https://github.com/livekit/server-sdk-ruby">Ruby</a> · <a href="https://github.com/livekit/server-sdk-kotlin">Java/Kotlin</a> · <a href="https://github.com/livekit/client-sdk-python">Python</a> · <a href="https://github.com/livekit/client-sdk-rust">Rust</a> · <a href="https://github.com/agence104/livekit-server-sdk-php">PHP (community)</a></td></tr><tr></tr>
+<tr><td>Real-time SDKs</td><td><a href="https://github.com/livekit/components-js">React Components</a> · <a href="https://github.com/livekit/client-sdk-js">Browser</a> · <a href="https://github.com/livekit/client-sdk-swift">iOS/macOS</a> · <a href="https://github.com/livekit/client-sdk-android">Android</a> · <a href="https://github.com/livekit/client-sdk-flutter">Flutter</a> · <b>React Native</b> · <a href="https://github.com/livekit/rust-sdks">Rust</a> · <a href="https://github.com/livekit/node-sdks">Node.js</a> · <a href="https://github.com/livekit/python-sdks">Python</a> · <a href="https://github.com/livekit/client-sdk-unity-web">Unity (web)</a> · <a href="https://github.com/livekit/client-sdk-unity">Unity (beta)</a></td></tr><tr></tr>
+<tr><td>Server APIs</td><td><a href="https://github.com/livekit/node-sdks">Node.js</a> · <a href="https://github.com/livekit/server-sdk-go">Golang</a> · <a href="https://github.com/livekit/server-sdk-ruby">Ruby</a> · <a href="https://github.com/livekit/server-sdk-kotlin">Java/Kotlin</a> · <a href="https://github.com/livekit/python-sdks">Python</a> · <a href="https://github.com/livekit/rust-sdks">Rust</a> · <a href="https://github.com/agence104/livekit-server-sdk-php">PHP (community)</a></td></tr><tr></tr>
 <tr><td>Agents Frameworks</td><td><a href="https://github.com/livekit/agents">Python</a> · <a href="https://github.com/livekit/agent-playground">Playground</a></td></tr><tr></tr>
 <tr><td>Services</td><td><a href="https://github.com/livekit/livekit">Livekit server</a> · <a href="https://github.com/livekit/egress">Egress</a> · <a href="https://github.com/livekit/ingress">Ingress</a> · <a href="https://github.com/livekit/sip">SIP</a></td></tr><tr></tr>
 <tr><td>Resources</td><td><a href="https://docs.livekit.io">Docs</a> · <a href="https://github.com/livekit-examples">Example apps</a> · <a href="https://livekit.io/cloud">Cloud</a> · <a href="https://docs.livekit.io/oss/deployment">Self-hosting</a> · <a href="https://github.com/livekit/livekit-cli">CLI</a></td></tr>

@@ -1,5 +1,5 @@
 import {
-  AudioTrack,
+  type AudioTrack,
   ConnectionState,
   LocalParticipant,
   Participant,
@@ -23,6 +23,7 @@ export interface RoomOptions {
   sortParticipants?: (participants: Participant[]) => void;
 }
 
+/** @deprecated wrap your components in a <LiveKitRoom> component instead and use more granular hooks to track state you're interested in */
 export function useRoom(room: Room, options?: RoomOptions): RoomState {
   const [error] = useState<Error>();
   const [participants, setParticipants] = useState<Participant[]>([]);

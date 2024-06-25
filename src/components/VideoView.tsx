@@ -1,18 +1,26 @@
 import * as React from 'react';
 
-import { LayoutChangeEvent, StyleSheet, View, ViewStyle } from 'react-native';
 import {
-  ElementInfo,
+  type LayoutChangeEvent,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from 'react-native';
+import {
+  type ElementInfo,
   LocalVideoTrack,
   Track,
   TrackEvent,
-  VideoTrack,
+  type VideoTrack,
 } from 'livekit-client';
 import { RTCView } from '@livekit/react-native-webrtc';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RemoteVideoTrack } from 'livekit-client';
 import ViewPortDetector from './ViewPortDetector';
 
+/**
+ * @deprecated use `VideoTrack` and `VideoTrackProps` instead.
+ */
 export type Props = {
   videoTrack?: VideoTrack | undefined;
   style?: ViewStyle;
@@ -21,6 +29,9 @@ export type Props = {
   zOrder?: number;
 };
 
+/**
+ * @deprecated use `VideoTrack` and `VideoTrackProps` instead.
+ */
 export const VideoView = ({
   style = {},
   videoTrack,
@@ -35,6 +46,14 @@ export const VideoView = ({
     return info;
   });
 
+  const layoutOnChange = useCallback(
+    (event: LayoutChangeEvent) => elementInfo.onLayout(event),
+    [elementInfo]
+  );
+  const visibilityOnChange = useCallback(
+    (isVisible: boolean) => elementInfo.onVisibility(isVisible),
+    [elementInfo]
+  );
   const shouldObserveVisibility = useMemo(() => {
     return (
       videoTrack instanceof RemoteVideoTrack && videoTrack.isAdaptiveStream
@@ -70,23 +89,15 @@ export const VideoView = ({
   }, [videoTrack, elementInfo]);
 
   return (
-    <View
-      style={{ ...style, ...styles.container }}
-      onLayout={(event) => {
-        elementInfo.onLayout(event);
-      }}
-    >
+    <View style={{ ...style, ...styles.container }} onLayout={layoutOnChange}>
       <ViewPortDetector
-        onChange={(isVisible: boolean) => elementInfo.onVisibility(isVisible)}
+        onChange={visibilityOnChange}
         style={styles.videoView}
         disabled={!shouldObserveVisibility}
+        propKey={videoTrack}
       >
         <RTCView
-          // eslint-disable-next-line react-native/no-inline-styles
-          style={{
-            flex: 1,
-            width: '100%',
-          }}
+          style={styles.videoView}
           streamURL={mediaStream?.toURL() ?? ''}
           objectFit={objectFit}
           zOrder={zOrder}
